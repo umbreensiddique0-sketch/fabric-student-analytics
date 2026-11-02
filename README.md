@@ -256,6 +256,204 @@ Lakehouse notebook, run the same SQL via the Fabric SQL endpoint, enforce RLS
 via Fabric's security model, and schedule the notebook with a Data Pipeline.
 
 ---
+## Deployment Architecture: Cloud vs. On-Premises
+
+### 1. Architecture Overview
+
+The implemented solution is a Fabric-inspired local proof of concept using Python, Pandas, Parquet, DuckDB SQL, and Pytest.
+
+For production deployment, the same logical architecture can be implemented in either a Microsoft Fabric/Azure environment or an on-premises environment.
+
+Both deployment models preserve the following design principles:
+
+- **Medallion Architecture:** Separate raw, validated, and analytical data into Bronze, Silver, and Gold layers.
+- **Data Quality:** Validate schema, primary keys, foreign keys, and business rules.
+- **Reproducibility:** Support repeatable processing and controlled re-execution.
+- **Security:** Apply role-based access, personally identifiable information (PII) protection, and metadata classification.
+- **Analytics:** Provide SQL-queryable Gold datasets and API-ready JSON responses.
+- **Automation:** Schedule pipeline execution, validate results, and monitor failures.
+
+The technology choices differ by deployment environment, but the data model and business definitions remain consistent.
+
+### 2. Cloud-Based Architecture — Microsoft Fabric / Azure
+
+The recommended cloud architecture uses Microsoft Fabric as the primary data engineering and analytics platform.
+
+```mermaid
+flowchart TD
+    A["Source Systems<br/>Students, Courses, Assignments, Submissions"]
+    B["Fabric Data Factory<br/>Data Pipelines"]
+    C["OneLake / Fabric Lakehouse<br/>BRONZE: Raw Data"]
+    D["Fabric Spark Notebooks<br/>Validation and Transformation"]
+    E["OneLake / Fabric Lakehouse<br/>SILVER: Cleaned Data and Fact Tables"]
+    F["Spark SQL / Fabric SQL Processing"]
+    G["OneLake / Fabric Lakehouse<br/>GOLD: Analytical Tables"]
+    H["Power BI / API Consumption<br/>AI and ML Applications"]
+    I["Microsoft Entra ID<br/>Access Control"]
+    J["Microsoft Purview / OneLake Catalog<br/>Governance and Lineage"]
+    K["GitHub Actions / Fabric Deployment Pipelines<br/>CI/CD"]
+
+    A --> B --> C --> D --> E --> F --> G --> H
+    I -.-> E
+    I -.-> G
+    J -.-> C
+    J -.-> E
+    J -.-> G
+    K -.-> B
+    K -.-> D
+```
+
+#### Component Responsibilities
+
+| Component | Technology | Responsibility |
+|---|---|---|
+| Data ingestion | Fabric Data Factory | Ingest source data through scheduled pipelines |
+| Bronze storage | OneLake / Fabric Lakehouse | Preserve raw source records and ingestion metadata |
+| Silver processing | Fabric Spark / PySpark | Clean, validate, standardize, and join records |
+| Silver storage | Delta tables | Maintain validated dimensions and student-assignment facts |
+| Gold processing | Spark SQL / Fabric SQL | Calculate missing submissions, submission rates, and overdue counts |
+| Gold storage | Delta tables / Fabric Warehouse | Provide curated, queryable analytical datasets |
+| Consumption | Power BI / REST API layer | Expose analytical results to reporting and AI applications |
+| Identity and security | Microsoft Entra ID / Fabric permissions | Control access to data and workspaces |
+| Governance | OneLake catalog / Microsoft Purview | Support metadata, classification, and lineage |
+| CI/CD | GitHub Actions / Fabric deployment pipelines | Validate and promote solution artifacts |
+
+#### Cloud Data Flow
+
+1. Fabric Data Factory ingests student, course, assignment, and submission datasets.
+2. Raw records are stored in Bronze Delta tables with ingestion metadata.
+3. Fabric Spark notebooks validate schemas, keys, relationships, and assignment eligibility.
+4. Cleaned records and the student-assignment fact table are written to Silver Delta tables.
+5. SQL transformations generate the three required analytical datasets in Gold.
+6. A downstream application or API layer retrieves Gold results and exposes consistent JSON responses.
+7. Monitoring and pipeline failure alerts support operational reliability.
+
+#### Cloud Design Considerations
+
+**Scalability:** Fabric-managed compute and Delta tables allow processing to scale as student, assignment, and submission volumes increase.
+
+**Reliability:** Pipeline retries, checkpointing where appropriate, idempotent transformations, and data quality checks reduce processing failures.
+
+**Security:** Microsoft Entra ID, workspace permissions, sensitivity labels, and supported row-level or column-level controls protect data.
+
+**Monitoring:** Fabric pipeline monitoring, execution logs, and alerting help detect failed ingestion or transformation jobs.
+
+**Disaster recovery:** Recovery requirements should be addressed through source-data retention, versioned data, backups or replication where supported, and tested recovery procedures.
+
+### 3. On-Premises Architecture
+
+For organizations with data residency restrictions, limited cloud connectivity, or existing data center infrastructure, the same architecture can be deployed on-premises.
+
+A possible production implementation uses Python or Apache Spark for processing, Apache Airflow for orchestration, and a self-managed data lake or object-storage platform.
+
+```mermaid
+flowchart TD
+    A["Source Systems<br/>CSV, Databases, Internal Applications"]
+    B["Apache Airflow / Scheduled Python Jobs"]
+    C["On-Premises Storage<br/>BRONZE: Raw Data"]
+    D["Python / Pandas / Apache Spark<br/>Validation and Transformation"]
+    E["Parquet / Delta Lake<br/>SILVER: Cleaned Data and Fact Tables"]
+    F["DuckDB / Spark SQL<br/>Analytical Transformations"]
+    G["Parquet / Delta Lake<br/>GOLD: Analytical Tables"]
+    H["Internal REST API / BI Tools<br/>AI and ML Applications"]
+    I["Active Directory / Enterprise IAM<br/>Access Control"]
+    J["Data Catalog / Audit Logs<br/>Governance"]
+    K["Self-Hosted CI Runner<br/>Automated Testing and Deployment"]
+
+    A --> B --> C --> D --> E --> F --> G --> H
+    I -.-> E
+    I -.-> G
+    J -.-> C
+    J -.-> E
+    J -.-> G
+    K -.-> B
+    K -.-> D
+```
+
+#### Component Responsibilities
+
+| Component | Technology | Responsibility |
+|---|---|---|
+| Data ingestion | Python / Airflow | Extract and schedule source data ingestion |
+| Bronze storage | File server / on-premises object storage | Preserve raw data and ingestion metadata |
+| Silver processing | Python / Pandas / Apache Spark | Validate, standardize, and join source records |
+| Silver storage | Parquet / Delta Lake | Store validated dimensions and fact tables |
+| Gold processing | DuckDB / Spark SQL | Execute business analytics |
+| Gold storage | Parquet / Delta Lake | Store curated analytical outputs |
+| Consumption | Internal REST API / BI platform | Provide secure downstream access |
+| Security | Active Directory / enterprise IAM | Enforce authentication and role-based authorization |
+| Governance | Metadata catalog / audit logging | Track classification, ownership, and processing history |
+| CI/CD | GitHub Actions with self-hosted runner or internal CI | Execute tests and controlled deployments |
+
+#### On-Premises Data Flow
+
+1. Airflow or scheduled Python jobs ingest data from internal systems.
+2. Source records are stored in a protected Bronze storage location.
+3. Python or Spark validates source data and creates cleaned Silver datasets.
+4. SQL transformations calculate Gold analytical results.
+5. Internal services expose the results to authorized consumers.
+6. Audit logs and monitoring record pipeline execution and access events.
+
+#### On-Premises Design Considerations
+
+**Scalability:** DuckDB and Pandas are suitable for smaller workloads. Apache Spark and distributed storage can be introduced for larger datasets.
+
+**Reliability:** Job retries, dependency management, checkpointing where appropriate, and validation gates improve pipeline resilience.
+
+**Security:** Enterprise identity management, network segmentation, filesystem or object-storage permissions, and application-level access controls protect student data.
+
+**Monitoring:** Airflow logs, infrastructure monitoring, and centralized alerting can track job health and failures.
+
+**Disaster recovery:** Backups, replicated storage, documented restoration procedures, and recovery testing are the responsibility of the infrastructure team.
+
+### 4. Cloud vs. On-Premises Comparison
+
+| Design Dimension | Cloud: Microsoft Fabric | On-Premises |
+|---|---|---|
+| Infrastructure | Managed cloud services | Organization-managed infrastructure |
+| Storage | OneLake / Delta tables | File storage or object storage / Parquet / Delta |
+| Processing | Fabric Spark and SQL | Python, DuckDB, or Spark |
+| Orchestration | Fabric Data Factory | Airflow or scheduled jobs |
+| Scaling | Managed capacity and compute configuration | Additional servers and cluster resources |
+| Security | Entra ID and Fabric security features | Enterprise IAM and infrastructure controls |
+| Governance | OneLake catalog / Purview | Self-managed catalog and audit systems |
+| Operations | Less infrastructure administration | Greater infrastructure responsibility |
+| Connectivity | Requires appropriate cloud connectivity | Can operate within internal networks |
+| Cost model | Cloud capacity and service costs | Hardware, licensing, maintenance, and operations |
+| Best suited for | Cloud-first analytics and integrated Microsoft ecosystems | Strict on-premises requirements and existing data center investments |
+
+### 5. Recommended Deployment Strategy
+
+For a cloud-first organization already using Microsoft technologies, **Microsoft Fabric is the preferred production option** because it integrates ingestion, Lakehouse storage, Spark processing, SQL analytics, and governance into a unified platform.
+
+An **on-premises deployment** is appropriate when regulatory requirements, network isolation, or existing infrastructure constraints prevent cloud adoption.
+
+The existing local implementation provides a technology-independent demonstration of the underlying business logic. Its modular separation of ingestion, transformation, analytics, and security allows those components to be adapted to either deployment environment.
+
+### 6. Architecture Trade-offs and Future Enhancements
+
+The current implementation is intentionally small, deterministic, and batch-oriented. A production solution would require additional engineering decisions:
+
+- **Incremental ingestion:** Introduce change tracking, watermarks, or change data capture instead of full refreshes.
+- **Data contracts:** Define versioned schemas and policies for handling unexpected source changes.
+- **Data quality:** Add configurable validation thresholds, quarantine handling, and alerting.
+- **Historical analytics:** Decide whether changing student attributes require slowly changing dimensions.
+- **Observability:** Track pipeline duration, freshness, row counts, failures, and data quality metrics.
+- **Security:** Move from simulated role-based views to enforced platform permissions and audited access.
+- **API serving:** Deploy an authenticated API service with pagination, caching, and appropriate rate limits.
+- **Recovery:** Define recovery point and recovery time objectives and test restoration procedures.
+
+These are proposed production enhancements and are not claimed to be implemented in the local proof of concept.
+
+### 7. Design Walkthrough Summary
+
+The architectural decision is to **separate logical data modeling from physical infrastructure**.
+
+Bronze preserves the source data, Silver establishes validated relationships and consistent business rules, and Gold provides curated analytical results. The same definitions for missing submissions, submission rates, and overdue assignments are maintained across both deployment options.
+
+The local implementation validates the approach; the cloud and on-premises architectures describe how it can be operationalized at enterprise scale.
+
+---
 
 ## Deliverables checklist
 
