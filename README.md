@@ -279,6 +279,8 @@ The technology choices differ by deployment environment, but the data model and 
 
 The recommended cloud architecture uses Microsoft Fabric as the primary data engineering and analytics platform.
 
+![Cloud-Based Architecture](evidence/05_cloud_architecture.png)
+
 ```mermaid
 flowchart TD
     A["Source Systems<br/>Students, Courses, Assignments, Submissions"]
@@ -345,6 +347,8 @@ flowchart TD
 For organizations with data residency restrictions, limited cloud connectivity, or existing data center infrastructure, the same architecture can be deployed on-premises.
 
 A possible production implementation uses Python or Apache Spark for processing, Apache Airflow for orchestration, and a self-managed data lake or object-storage platform.
+
+![On-Premises Architecture](evidence/06_on_premises_architecture.png)
 
 ```mermaid
 flowchart TD
