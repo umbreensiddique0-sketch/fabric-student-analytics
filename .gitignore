@@ -1,0 +1,36 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Secrets / env ---
+.env
+
+# --- Generated lakehouse layers (regenerable; keep source CSVs) ---
+data/bronze/*
+!data/bronze/.gitkeep
+data/silver/*
+!data/silver/.gitkeep
+data/gold/*
+!data/gold/.gitkeep
+
+# --- Generated API responses (regenerable) ---
+outputs/api_responses/*
+!outputs/api_responses/.gitkeep
+
+# --- DuckDB / Parquet artifacts ---
+*.duckdb
+*.duckdb.wal
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

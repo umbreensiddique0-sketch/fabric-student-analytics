@@ -1,0 +1,7 @@
+course_id,course_name,instructor,program,start_date,end_date
+1,Intro to Data Science,Dr. Adele Mensah,DS,2025-01-15,2025-05-30
+2,Machine Learning Foundations,Prof. Liam Carter,DS,2025-02-01,2025-06-15
+3,Software Architecture,Dr. Noor Haddad,SE,2025-01-20,2025-05-25
+4,Cloud Native Development,Prof. Sara Khan,SE,2025-02-10,2025-06-20
+5,Network Security,Dr. Marco Rossi,CS,2025-01-15,2025-05-20
+6,Ethical Hacking,Prof. Yuki Tanaka,CS,2025-02-05,2025-06-10
